@@ -53,7 +53,7 @@ router.post("/login", async (req, res) => {
       return res.status(404).json({ message: "User not found" });
     }
     const isPassValid = bcrypt.compareSync(password, user.password);
-    console.log(isPassValid);
+
     if (!isPassValid) {
       return res.status(404).json({ message: "Invalid password" });
     }
@@ -80,9 +80,7 @@ router.post("/login", async (req, res) => {
 
 router.get("/auth", authMiddleware, async (req, res) => {
   try {
-    console.log(req.user);
     const user = await User.findOne({ _id: req.user.id });
-    console.log(user);
     const token = jwt.sign({ id: user.id }, config.get("secretKey"), {
       expiresIn: "1h",
     });

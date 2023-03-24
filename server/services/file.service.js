@@ -18,8 +18,6 @@ class FileService {
           return reject({ message: "File already exists" });
         }
       } catch (e) {
-        console.log(fs.existsSync(filePath));
-
         return reject({ message: "File error" });
       }
     });
