@@ -1,7 +1,10 @@
 const fileService = require("../services/file.service");
 const User = require("../models/User");
 const File = require("../models/File");
-const { sep } = require("path");
+const { sep, resolve, join } = require("path");
+const fs = require("fs");
+
+const filePath = join(resolve(), "files");
 
 class FileController {
   async createDir(req, res) {
@@ -26,7 +29,7 @@ class FileController {
     }
   }
 
-  async fetchFiles(req, res) {
+  async getFiles(req, res) {
     try {
       const files = await File.find({
         user: req.user.id,
@@ -36,6 +39,58 @@ class FileController {
     } catch (e) {
       console.log(e);
       return res.status(500).json({ message: "Can not get files" });
+    }
+  }
+
+  async uploadFile(req, res) {
+    try {
+      const file = req.files.file;
+
+      const parent = await File.findOne({
+        user: req.user.id,
+        _id: req.body.parent,
+      });
+
+      const user = await User.findOne({ _id: req.user.id });
+
+      if (user.usedSpace + file.size > user.diskSpace) {
+        return res.status(400).json({ message: "There no space on the disk" });
+      }
+
+      user.usedSpace = user.usedSpace + file.size;
+
+      let path;
+
+      if (parent) {
+        path = `${filePath}${sep}${sep}${user._id}${sep}${sep}${parent.path}${sep}${sep}${file.name}`;
+      } else {
+        path = `${filePath}${sep}${sep}${user._id}${sep}${sep}${file.name}`;
+      }
+
+      if (fs.existsSync(path)) {
+        return res.status(400).json({ message: "File already exist" });
+      }
+
+      file.mv(path);
+
+      const type = file.name.split(".").pop();
+
+      const dbFile = new File({
+        name: file.name,
+        type,
+        size: file.size,
+        path: parent?.path,
+        parent: parent?._id,
+        user: user._id,
+      });
+
+      await dbFile.save();
+      await user.save();
+
+      res.json(dbFile);
+    } catch (e) {
+      console.log(e);
+      return res.status(500).json({ message: "Uplod file" });
     }
   }
 }
