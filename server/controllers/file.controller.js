@@ -52,15 +52,12 @@ class FileController {
       });
 
       const user = await User.findOne({ _id: req.user.id });
-
       if (user.usedSpace + file.size > user.diskSpace) {
         return res.status(400).json({ message: "There no space on the disk" });
       }
-
       user.usedSpace = user.usedSpace + file.size;
 
       let path;
-
       if (parent) {
         path = `${filePath}${sep}${sep}${user._id}${sep}${sep}${parent.path}${sep}${sep}${file.name}`;
       } else {
@@ -70,7 +67,6 @@ class FileController {
       if (fs.existsSync(path)) {
         return res.status(400).json({ message: "File already exist" });
       }
-
       file.mv(path);
 
       const type = file.name.split(".").pop();
@@ -91,6 +87,20 @@ class FileController {
     } catch (e) {
       console.log(e);
       return res.status(500).json({ message: "Uplod file" });
+    }
+  }
+
+  async downloadFile(req, res) {
+    try {
+      const file = await File.findOne({ _id: req.query.id, user: req.user.id });
+      const path = `${filePath}${sep}${sep}${req.user.id}${sep}${sep}${file.path}${sep}${sep}${file.name}`;
+      if (fs.existsSync(path)) {
+        return res.download(path, file.name);
+      }
+      res.status(500).json({ message: "Download error" });
+    } catch (e) {
+      console.log(e);
+      res.status(500).json({ message: "Download error" });
     }
   }
 }
