@@ -11,8 +11,8 @@ class FileService {
 
     return new Promise((resolve, reject) => {
       try {
-        if (!fs.existsSync(filePath)) {
-          fs.mkdirSync(filePath, { recursive: true });
+        if (!fs.existsSync(path)) {
+          fs.mkdirSync(path, { recursive: true });
           return resolve({ message: "File was created" });
         } else {
           return reject({ message: "File already exists" });
@@ -21,6 +21,25 @@ class FileService {
         return reject({ message: "File error" });
       }
     });
+  }
+
+  deleteFile(file) {
+    const path = this.getPath(file);
+    try {
+      if (file.type === "dir") {
+        fs.rmdirSync(path);
+      } else {
+        fs.unlinkSync(path);
+      }
+      return true;
+    } catch (e) {
+      console.log("error service");
+      return false;
+    }
+  }
+
+  getPath(file) {
+    return `${filePath}${sep}${sep}${file.user}${sep}${sep}${file.path}`;
   }
 }
 

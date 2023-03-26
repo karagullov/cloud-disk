@@ -45,7 +45,6 @@ class FileController {
   async uploadFile(req, res) {
     try {
       const file = req.files.file;
-
       const parent = await File.findOne({
         user: req.user.id,
         _id: req.body.parent,
@@ -68,14 +67,13 @@ class FileController {
         return res.status(400).json({ message: "File already exist" });
       }
       file.mv(path);
-
       const type = file.name.split(".").pop();
 
       const dbFile = new File({
         name: file.name,
         type,
         size: file.size,
-        path: parent?.path,
+        path: parent ? parent.path + sep + sep + file.name : file.name,
         parent: parent?._id,
         user: user._id,
       });
@@ -93,7 +91,7 @@ class FileController {
   async downloadFile(req, res) {
     try {
       const file = await File.findOne({ _id: req.query.id, user: req.user.id });
-      const path = `${filePath}${sep}${sep}${req.user.id}${sep}${sep}${file.path}${sep}${sep}${file.name}`;
+      const path = `${filePath}${sep}${sep}${req.user.id}${sep}${sep}${file.path}`;
       if (fs.existsSync(path)) {
         return res.download(path, file.name);
       }
@@ -101,6 +99,26 @@ class FileController {
     } catch (e) {
       console.log(e);
       res.status(500).json({ message: "Download error" });
+    }
+  }
+
+  async deleteFile(req, res) {
+    try {
+      const file = await File.findOne({ _id: req.query.id, user: req.user.id });
+      if (!file) {
+        return res.status(400).json({ message: "File not found" });
+      }
+
+      const response = fileService.deleteFile(file, res);
+      if (!response) {
+        return res.status(500).json({ message: "Delete error" });
+      }
+
+      await file.deleteOne();
+      return res.status(200).json({ message: "File was deleted" });
+    } catch (e) {
+      console.log(e);
+      res.status(500).json({ message: "Delete error maybe dir is not empty" });
     }
   }
 }
