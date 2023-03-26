@@ -3,8 +3,10 @@ const User = require("../models/User");
 const File = require("../models/File");
 const { sep, resolve, join } = require("path");
 const fs = require("fs");
+const Uuid = require("uuid");
 
 const filePath = join(resolve(), "files");
+const staticPath = join(resolve(), "static");
 
 class FileController {
   async createDir(req, res) {
@@ -150,6 +152,34 @@ class FileController {
     } catch (e) {
       console.log(e);
       res.status(500).json({ message: "Search error" });
+    }
+  }
+
+  async uploadAvatar(req, res) {
+    try {
+      const file = req.files.file;
+      const user = await User.findById(req.user.id);
+      const avatarName = Uuid.v4() + ".jpg";
+      file.mv(staticPath + sep + sep + avatarName);
+      user.avatar = avatarName;
+      await user.save();
+      return res.json(user);
+    } catch (e) {
+      console.log(e);
+      res.status(500).json({ message: "Upload avater error" });
+    }
+  }
+
+  async deleteAvatar(req, res) {
+    try {
+      const user = await User.findById(req.user.id);
+      fs.unlinkSync(staticPath + sep + sep + user.avatar);
+      user.avatar = null;
+      await user.save();
+      return res.json(user);
+    } catch (e) {
+      console.log(e);
+      res.status(500).json({ message: "Delete avater error" });
     }
   }
 }
